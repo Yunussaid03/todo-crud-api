@@ -1,4 +1,6 @@
 const express = require('express');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./openapi.json');
 const app = express();
 const port = 3000;
 
@@ -67,6 +69,48 @@ app.post('/tasks', (req, res) => {
   tasks.push(newTask);
   res.status(201).json(newTask);
 });
+
+// PUT update task
+app.put('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id, 10);
+  const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: `Task ${taskId} not found` });
+  }
+
+  const { title, done } = req.body;
+
+  if (title !== undefined && (typeof title !== 'string' || title.trim() === '')) {
+    return res.status(400).json({ error: "Title cannot be empty" });
+  }
+  if (done !== undefined && typeof done !== 'boolean') {
+    return res.status(400).json({ error: "Done must be a boolean" });
+  }
+  if (title === undefined && done === undefined) {
+    return res.status(400).json({ error: "Nothing to update" });
+  }
+
+  if (title !== undefined) tasks[taskIndex].title = title.trim();
+  if (done !== undefined) tasks[taskIndex].done = done;
+
+  res.status(200).json(tasks[taskIndex]);
+});
+
+// DELETE task
+app.delete('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id, 10);
+  const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: `Task ${taskId} not found` });
+  }
+
+  tasks.splice(taskIndex, 1);
+  res.status(204).send();
+});
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
